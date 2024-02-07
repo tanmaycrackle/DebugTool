@@ -1,0 +1,52 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Tool</title>
+</head>
+<body>
+    <h1>File Upload</h1>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <script>
+                alert("{{ messages[0] }}");  // Display the flash message in a popup
+            </script>
+        {% endif %}
+    {% endwith %}
+
+    {% if easylist_set %}
+        <p>EasyList set has been generated successfully!</p>
+        <p>Size of the set: {{ easylist_set|length }}</p>
+        <p>Contents of the set: {{ easylist_set }}</p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <button type="submit">Submit</button>
+    </form>
+
+    <form method="post" action="/generate_easy_list">
+        <button type="submit">Generate EasyList Set</button>
+    </form>
+
+    <form method="post" action="/generate_ad_network_output">
+        <button type="submit">Generate Ad Network Output</button>
+    </form>
+
+    <form method="post" action="/add_to_set_and_file">
+        <input type="text" name="input_string" placeholder="Enter string">
+        <button type="submit">Add to Set and File</button>
+    </form>
+
+    <!-- New form for deleting from the set and file -->
+    <form method="post" action="/delete_from_set_and_file">
+        <input type="text" name="input_string" placeholder="Enter string">
+        <button type="submit">Delete from Set and File</button>
+    </form>
+
+</body>
+</html>
