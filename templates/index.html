@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <title>Debug Tool</title>
 </head>
 <body>
@@ -29,9 +31,9 @@
         <button type="submit">Submit</button>
     </form>
 
-    <form method="post" action="/generate_easy_list">
+    <!-- <form method="post" action="/generate_easy_list">
         <button type="submit">Generate EasyList Set</button>
-    </form>
+    </form> -->
 
     <form method="post" action="/generate_ad_network_output">
         <button type="submit">Generate Ad Network Output</button>
@@ -47,6 +49,27 @@
         <input type="text" name="input_string" placeholder="Enter string">
         <button type="submit">Delete from Set and File</button>
     </form>
+    <!-- Button to download custom_filtered_network_calls.csv -->
+    <form method="get" action="/download_custom_filtered_network_calls">
+        <button type="submit">Download Custom Filtered Network Calls</button>
+    </form>
 
+    <!-- Button to download filtered_network_calls.csv -->
+    <form method="get" action="/download_filtered_network_calls">
+        <button type="submit">Download Filtered Network Calls</button>
+    </form>
+
+    <form method="post" action="/generate_graph">
+        <input type="radio" name="network_calls_df" value="custom_filtered"> Custom Filtered Network Calls
+        <input type="radio" name="network_calls_df" value="filtered"> Filtered Network Calls
+        <input type="radio" name="network_calls_df" value="network_calls"> Network Calls
+        <button type="submit">Generate Graph</button>
+    </form>
+    
+
+    <!-- Graph display -->
+    {% if graph %}
+        {{ graph|safe }}
+    {% endif %}
 </body>
 </html>

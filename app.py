@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, logging
+from flask import Flask, render_template, request, flash, redirect, url_for, logging, send_file
+import plotly.graph_objs as go
 import requests
 import re
 import os
@@ -23,6 +24,7 @@ prebuilt_set = set()  # Replace this with your prebuilt set
 # custom_save_path = 'additional_ssp_list.txt'  # File where results are being compiled after being filtered
 custom_filtered_network_calls_df = pd.DataFrame()
 file_path = 'additional_ssp_List.txt'
+graph_name = ''
 
 def load_file(file_path):
     global charles_df
@@ -148,19 +150,20 @@ def index():
             if file.filename != '':
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 file.save(file_path)
-                global charles_df
+                global charles_df,easylist_set
                 charles_df = load_file(file_path)
                 if charles_df is not None:
                     print(f"File '{file.filename}' has been uploaded successfully!")
+                easylist_set = generate_easy_list_set()
 
     return render_template('index.html')
 
-@app.route('/generate_easy_list', methods=['POST'])
-def generate_easy_list():
-    global easylist_set
-    easylist_set = generate_easy_list_set()
-    flash('Operation successful', 'success')
-    return redirect(url_for('index'))  # Redirect to the home directory
+# @app.route('/generate_easy_list', methods=['POST'])
+# def generate_easy_list():
+#     global easylist_set
+#     easylist_set = generate_easy_list_set()
+#     flash('Operation successful', 'success')
+#     return redirect(url_for('index'))  # Redirect to the home directory
 
 
 @app.route('/generate_ad_network_output', methods=['POST'])
@@ -198,6 +201,136 @@ def delete_from_set_and_file_route():
     delete_from_set_and_file(lower_input_string)
     flash(f'Success: Deleted "{lower_input_string}" from the set and file.', 'success')
     return redirect(url_for('index'))
+
+@app.route('/download_custom_filtered_network_calls')
+def download_custom_filtered_network_calls():
+    return send_file('custom_filtered_network_calls.csv', as_attachment=True)
+
+@app.route('/download_filtered_network_calls')
+def download_filtered_network_calls():
+    return send_file('filtered_network_calls.csv', as_attachment=True)
+
+
+
+
+@app.route('/generate_graph', methods=['POST'])
+def generate_graph():
+    global charles_df, custom_filtered_network_calls_df, filtered_network_calls_df,graph_name
+    # Get the selected dataframe from the radio button
+    selected_df = None
+    if request.form.get('network_calls_df') == 'custom_filtered':
+        selected_df = custom_filtered_network_calls_df
+        graph_name = 'custom_filtered_network_graph.jpg'
+    elif request.form.get('network_calls_df') == 'filtered':
+        selected_df = filtered_network_calls_df
+        graph_name = 'filtered_network_graph.jpg'
+    elif request.form.get('network_calls_df') == 'network_calls':
+        selected_df = charles_df
+        graph_name = 'network_graph.jpg'
+
+    # Check if the selected dataframe has changed from its previous state
+    # if selected_df.equals(generate_graph.last_df):
+    #     return "No changes detected. Graph not generated."
+
+    # Generate information table
+    testdf = selected_df[['URL','Status','Response Code','Method',
+                          'Request Start Time','Request End Time',
+                          'Response Start Time','Response End Time',
+                          'Duration (ms)', 'DNS Duration (ms)',
+                          'Connect Duration (ms)', 'SSL Duration (ms)',
+                          'Request Duration (ms)', 'Response Duration (ms)',
+                          'Latency (ms)']].copy()
+    testdf = testdf.reset_index(drop=True)
+
+    testdf['Request Start Time'] = pd.to_datetime(testdf['Request Start Time'], format='%y/%m/%d %H:%M')
+
+    # Create a column with shortened URLs for better display
+    testdf['Shortened URL'] = testdf['URL'].apply(lambda x: x[:12] + '...' if len(x) > 13 else x)
+
+    # Create an empty list to store individual traces
+    traces = []
+
+    # Iterate through each row in the DataFrame and create traces for Request, Response, and Latency
+    for index, row in testdf.iterrows():
+        request_trace = go.Bar(
+            y=[index],
+            x=[row['Request Duration (ms)'] * 100], # Mutiplying it by a factor since the request duration is very small in number
+            orientation="h",
+            name=f"Request - {row['Shortened URL']}",
+            hoverinfo="x+text",
+            text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Request Duration: {row['Request Duration (ms)']} ms<br>Code: {row['Response Code']}",
+            # showlegend=True,
+            marker=dict(color='rgba(214, 114, 237, 0.8)', line=dict(width=0))
+        )
+
+        latency_trace = go.Bar(
+            y=[index],
+            x=[row['Latency (ms)']],
+            orientation="h",
+            name=f"Latency - {row['Shortened URL']}",
+            hoverinfo="x+text",
+            text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Latency: {row['Latency (ms)']} ms<br>Code: {row['Response Code']}",
+            # showlegend=True,
+            marker=dict(color='rgba(255, 165, 0, 0.7)', line=dict(width=0))
+        )
+
+        response_trace = go.Bar(
+            y=[index],
+            x=[row['Response Duration (ms)'] * 100], # Mutiplying it by a factor since the response duration is very small in number
+            orientation="h",
+            name=f"Response - {row['Shortened URL']}",
+            hoverinfo="x+text",
+            text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Response: {row['Response Duration (ms)']} ms<br>Code: {row['Response Code']}",
+            # showlegend=True,
+            marker=dict(color='rgba(76, 140, 237, 0.8)', line=dict(width=0))
+        )
+
+        traces.extend([request_trace, latency_trace, response_trace])
+
+    # Create layout
+    layout = go.Layout(
+        title="Network Waterfall Chart",
+        yaxis=dict(title="Index"), 
+        xaxis=dict(title="Time"),
+        barmode='stack',
+        height=800,  # Adjusted height to accommodate more bars
+        width=800,
+        showlegend=False,
+        hovermode='closest',
+        annotations=[
+            # Add custom legends as annotations
+            dict(x=1.05, y=0.9, xref='paper', yref='paper',
+                text='Request Duration', showarrow=False,
+                font=dict(size=12, color='rgba(214, 114, 237, 0.8)')),
+
+            dict(x=1.05, y=0.8, xref='paper', yref='paper',
+                text='Latency', showarrow=False,
+                font=dict(size=12, color='rgba(255, 165, 0, 0.7)')),
+
+            dict(x=1.05, y=0.7, xref='paper', yref='paper',
+                text='Response Duration', showarrow=False,
+                font=dict(size=12, color='rgba(76, 140, 237, 0.8)'))
+        ]
+    )
+
+    # Create figure
+    fig = go.Figure(data=traces, layout=layout)
+    
+    # Show the figure
+    # fig.show()
+
+    # Save the figure as JPG file
+    fig.write_image(graph_name)
+
+    # Update the last dataframe with the current selected dataframe
+    # generate_graph.last_df = selected_df.copy()
+
+    # Render template with the graph
+    return render_template('index.html', graph=fig.to_html())
+
+# Initialize the last dataframe as None
+# generate_graph.last_df = None
+
 
 
 if __name__ == '__main__':
