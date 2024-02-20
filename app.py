@@ -6,6 +6,7 @@ import os
 import pandas as pd
 
 app = Flask(__name__)
+
 app.secret_key = 'your_secret_key'
 
 
@@ -14,6 +15,47 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+
+def clear_data_on_startup():
+    # Specify the files to be cleared
+    files_to_clear = ['custom_filtered_network_calls.csv', 
+                    'filtered_network_calls.csv', 
+                    'easylist_objects.txt',
+                    'additional_ssp_list.txt']
+
+    # Specify the files to be deleted
+    files_to_delete = ['filtered_network_graph.jpg', 
+                    'custom_filtered_network_graph.jpg',
+                    'network_graph.jpg']
+
+    # Get the directory path where the app.py file is located
+    current_dir = os.path.dirname(__file__)
+
+    # Clear data from specified files
+    for file_name in files_to_clear:
+        file_path = os.path.join(current_dir, file_name)
+        if os.path.exists(file_path):
+            with open(file_path, 'w') as f:
+                f.truncate(0)
+                app.logger.info(f"Data cleared from file: {file_name}")
+        else:
+            app.logger.warning(f"File does not exist: {file_name}")
+
+    # Delete specified files
+    for file_name in files_to_delete:
+        file_path = os.path.join(current_dir, file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            app.logger.info(f"File deleted: {file_name}")
+        else:
+            app.logger.warning(f"File does not exist: {file_name}")
+
+
+# Check if the application context is being initialized for the first time
+if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    clear_data_on_startup()
+
 
 easylist_set = set()  # Global variable to store the EasyList set
 charles_df = pd.DataFrame() # Global variable to the uploaded file 
@@ -25,6 +67,7 @@ prebuilt_set = set()  # Replace this with your prebuilt set
 custom_filtered_network_calls_df = pd.DataFrame()
 file_path = 'additional_ssp_List.txt'
 graph_name = ''
+
 
 def load_file(file_path):
     global charles_df
@@ -53,6 +96,7 @@ def generate_easy_list_set():
 
 def generate_ad_network_output():
     global filtered_network_calls_df, charles_df
+    app.logger.debug("1200")
     if charles_df.empty:
         flash('Error: Charles DataFrame is empty. Please upload a file first.', 'danger')
         return redirect(url_for('index'))
@@ -66,6 +110,26 @@ def generate_ad_network_output():
 
     flash('Ad network output generated successfully.', 'success')
     return redirect(url_for('index'))
+
+
+def extract_name(input_string):
+    # Find the first occurrence of "//"
+    start_index = input_string.find("//")
+    if start_index == -1:
+        return None  # "//" not found in the input string
+    
+    # Find the next occurrence of "/"
+    end_index = input_string.find("/", start_index + 2)
+    if end_index == -1:
+        # If "/" not found after "//", return the substring from "//" until the end
+        extracted_substring = input_string[start_index + 2:]
+    else:
+        # Extract the substring between "//" and "/"
+        extracted_substring = input_string[start_index + 2:end_index]
+    
+    return extracted_substring
+
+
 
 def generate_substrings(input_str):
     return [input_str[i:j] for i in range(len(input_str)) for j in range(i + 1, len(input_str) + 1)]
@@ -102,7 +166,7 @@ def resetfilter():
     # app.logger.debug(charles_df.columns)
     if not prebuilt_set:
         # Empty the DataFrame by dropping all rows
-        custom_filtered_network_calls_df = pd.DataFrame(columns = charles_df.columns)
+        custom_filtered_network_calls_df = pd.DataFrame()
         log_path = 'custom_filtered_network_calls.csv'
         custom_filtered_network_calls_df.to_csv(log_path, index=False)
         return
@@ -140,35 +204,46 @@ def delete_from_set_and_file(input_string):
         app.logger.debug(f"After deletion Global Data: {prebuilt_set}")
     return
 
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    # file_path, custom_filtered_network_calls_df, filtered_network_calls_df, prebuilt_set, easylist_set
+    global filtered_network_calls_df, charles_df, easylist_set, custom_filtered_network_calls_df
+    app.logger.debug("1")
     if request.method == 'POST':
+        app.logger.debug("2")
         if 'file' in request.files:
+            app.logger.debug("3")
             file = request.files['file']
             if file.filename != '':
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-                file.save(file_path)
-                global charles_df,easylist_set
-                charles_df = load_file(file_path)
-                if charles_df is not None:
-                    print(f"File '{file.filename}' has been uploaded successfully!")
-                easylist_set = generate_easy_list_set()
+                app.logger.debug("4")
+                if file.filename.endswith('.csv'):
+                    app.logger.debug("5")
+                    if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_file.csv')):
+                        app.logger.debug("6")
+                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_file.csv'))
+                    app.logger.debug("7")    
+                    filename = 'uploaded_file.csv'
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    charles_df = load_file(file_path)
+                    if charles_df is not None:
+                        app.logger.debug("8")
+                        print(f"File '{file.filename}' has been uploaded successfully!")
+                        filtered_network_calls_df = None
+                        custom_filtered_network_calls_df = None
+                        if not easylist_set: 
+                            app.logger.debug("9")
+                            easylist_set = generate_easy_list_set()
+                        generate_ad_network_output()
+                    return redirect(url_for('index'))  
+                else:
+                    print("Only .csv files are accepted.")
 
     return render_template('index.html')
 
-# @app.route('/generate_easy_list', methods=['POST'])
-# def generate_easy_list():
-#     global easylist_set
-#     easylist_set = generate_easy_list_set()
-#     flash('Operation successful', 'success')
-#     return redirect(url_for('index'))  # Redirect to the home directory
 
-
-@app.route('/generate_ad_network_output', methods=['POST'])
-def generate_ad_network_output_route():
-    return generate_ad_network_output()
+# @app.route('/generate_ad_network_output', methods=['POST'])
+# def generate_ad_network_output_route():
+#     return generate_ad_network_output()
 
 
 @app.route('/add_to_set_and_file', methods=['POST'])
@@ -217,21 +292,28 @@ def download_filtered_network_calls():
 def generate_graph():
     global charles_df, custom_filtered_network_calls_df, filtered_network_calls_df,graph_name
     # Get the selected dataframe from the radio button
+    # app.logger.debug("Length of charles is ", len(charles_df))
+    # app.logger.debug("Length of filter is ", len(filtered_network_calls_df))
+    # app.logger.debug("Length of custom is ", len(custom_filtered_network_calls_df))
     selected_df = None
     if request.form.get('network_calls_df') == 'custom_filtered':
+        app.logger.debug("Custom was selected")
         selected_df = custom_filtered_network_calls_df
         graph_name = 'custom_filtered_network_graph.jpg'
     elif request.form.get('network_calls_df') == 'filtered':
+        app.logger.debug("Filter was selected")
         selected_df = filtered_network_calls_df
         graph_name = 'filtered_network_graph.jpg'
     elif request.form.get('network_calls_df') == 'network_calls':
+        app.logger.debug("Charles was selected")
         selected_df = charles_df
         graph_name = 'network_graph.jpg'
 
-    # Check if the selected dataframe has changed from its previous state
-    # if selected_df.equals(generate_graph.last_df):
-    #     return "No changes detected. Graph not generated."
-
+    if selected_df is None or selected_df.empty : 
+        app.logger.debug("It was empty")
+        return redirect(url_for('index'))
+    app.logger.debug("It reached here")
+    app.logger.debug(selected_df)
     # Generate information table
     testdf = selected_df[['URL','Status','Response Code','Method',
                           'Request Start Time','Request End Time',
@@ -245,7 +327,7 @@ def generate_graph():
     testdf['Request Start Time'] = pd.to_datetime(testdf['Request Start Time'], format='%y/%m/%d %H:%M')
 
     # Create a column with shortened URLs for better display
-    testdf['Shortened URL'] = testdf['URL'].apply(lambda x: x[:12] + '...' if len(x) > 13 else x)
+    testdf['Shortened URL'] = testdf['URL'].apply(extract_name)
 
     # Create an empty list to store individual traces
     traces = []
@@ -254,10 +336,10 @@ def generate_graph():
     for index, row in testdf.iterrows():
         request_trace = go.Bar(
             y=[index],
-            x=[row['Request Duration (ms)'] * 100], # Mutiplying it by a factor since the request duration is very small in number
+            x=[row['Request Duration (ms)']], # Mutiplying it by a factor since the request duration is very small in number
             orientation="h",
             name=f"Request - {row['Shortened URL']}",
-            hoverinfo="x+text",
+            hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Request Duration: {row['Request Duration (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
             marker=dict(color='rgba(214, 114, 237, 0.8)', line=dict(width=0))
@@ -268,7 +350,7 @@ def generate_graph():
             x=[row['Latency (ms)']],
             orientation="h",
             name=f"Latency - {row['Shortened URL']}",
-            hoverinfo="x+text",
+            hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Latency: {row['Latency (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
             marker=dict(color='rgba(255, 165, 0, 0.7)', line=dict(width=0))
@@ -276,10 +358,10 @@ def generate_graph():
 
         response_trace = go.Bar(
             y=[index],
-            x=[row['Response Duration (ms)'] * 100], # Mutiplying it by a factor since the response duration is very small in number
+            x=[row['Response Duration (ms)']], # Mutiplying it by a factor since the response duration is very small in number
             orientation="h",
             name=f"Response - {row['Shortened URL']}",
-            hoverinfo="x+text",
+            hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Response: {row['Response Duration (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
             marker=dict(color='rgba(76, 140, 237, 0.8)', line=dict(width=0))
@@ -291,7 +373,7 @@ def generate_graph():
     layout = go.Layout(
         title="Network Waterfall Chart",
         yaxis=dict(title="Index"), 
-        xaxis=dict(title="Time"),
+        xaxis=dict(title="Time", range=[0, max(testdf['Request Duration (ms)'])]),
         barmode='stack',
         height=800,  # Adjusted height to accommodate more bars
         width=800,
@@ -315,9 +397,6 @@ def generate_graph():
 
     # Create figure
     fig = go.Figure(data=traces, layout=layout)
-    
-    # Show the figure
-    # fig.show()
 
     # Save the figure as JPG file
     fig.write_image(graph_name)
@@ -327,10 +406,6 @@ def generate_graph():
 
     # Render template with the graph
     return render_template('index.html', graph=fig.to_html())
-
-# Initialize the last dataframe as None
-# generate_graph.last_df = None
-
 
 
 if __name__ == '__main__':

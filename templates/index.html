@@ -26,18 +26,14 @@
         <p>Contents of the set: {{ easylist_set }}</p>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
+    <form method="post" enctype="multipart/form-data" action="/">
+        <input type="file" name="file" accept=".csv" required>
         <button type="submit">Submit</button>
     </form>
 
-    <!-- <form method="post" action="/generate_easy_list">
-        <button type="submit">Generate EasyList Set</button>
-    </form> -->
-
-    <form method="post" action="/generate_ad_network_output">
+    <!-- <form method="post" action="/generate_ad_network_output">
         <button type="submit">Generate Ad Network Output</button>
-    </form>
+    </form> -->
 
     <form method="post" action="/add_to_set_and_file">
         <input type="text" name="input_string" placeholder="Enter string">
@@ -65,11 +61,11 @@
         <input type="radio" name="network_calls_df" value="network_calls"> Network Calls
         <button type="submit">Generate Graph</button>
     </form>
-    
 
     <!-- Graph display -->
     {% if graph %}
         {{ graph|safe }}
     {% endif %}
+
 </body>
 </html>
