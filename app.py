@@ -62,14 +62,13 @@ charles_df = pd.DataFrame() # Global variable to the uploaded file
 filtered_network_calls_df = pd.DataFrame()  # Global variable to store filtered network calls
 
 # New global variables for custom filtering
-prebuilt_set = set()  # Replace this with your prebuilt set
-# custom_save_path = 'additional_ssp_list.txt'  # File where results are being compiled after being filtered
-custom_filtered_network_calls_df = pd.DataFrame()
-file_path = 'additional_ssp_List.txt'
-graph_name = ''
+prebuilt_set = set()  # Global variable for set using custom filtering
+custom_filtered_network_calls_df = pd.DataFrame() # Dataframe for storing data after custom filtering
+file_path = 'additional_ssp_List.txt' # Path at which custom filters are being written
+graph_name = '' # Variable being used for saving graphs
 
 
-def load_file(file_path):
+def load_file(file_path): # Function for loading main network call dataset after clicking on submit button
     global charles_df
     try:
         charles_df = pd.read_csv(file_path)
@@ -78,8 +77,8 @@ def load_file(file_path):
         print(f"Error loading file: {e}")
         return None
 
-def generate_easy_list_set():
-    easylist_url = "https://easylist.to/easylist/easylist.txt"
+def generate_easy_list_set(): # Function for extracting names of ad network sites and storing in easylist_set
+    easylist_url = "https://easylist.to/easylist/easylist.txt" # The site which contains all the ad sites
     easylist_response = requests.get(easylist_url)
     easylist_content = easylist_response.text
 
@@ -94,9 +93,8 @@ def generate_easy_list_set():
     return easylist_patterns
 
 
-def generate_ad_network_output():
+def generate_ad_network_output(): # Function being used to filter the main dataset for ad network calls
     global filtered_network_calls_df, charles_df
-    app.logger.debug("1200")
     if charles_df.empty:
         flash('Error: Charles DataFrame is empty. Please upload a file first.', 'danger')
         return redirect(url_for('index'))
@@ -112,7 +110,7 @@ def generate_ad_network_output():
     return redirect(url_for('index'))
 
 
-def extract_name(input_string):
+def extract_name(input_string): # Function being used to extract display name for calls being used in graph display
     # Find the first occurrence of "//"
     start_index = input_string.find("//")
     if start_index == -1:
@@ -131,10 +129,10 @@ def extract_name(input_string):
 
 
 
-def generate_substrings(input_str):
+def generate_substrings(input_str): # Function being used to search all substrings to check if the string has a matching common name with the prebuilt set
     return [input_str[i:j] for i in range(len(input_str)) for j in range(i + 1, len(input_str) + 1)]
 
-def generate_substring_for_url(url):
+def generate_substring_for_url(url): # Generating a short substring to search for 
     prefixes = ["https://", "http://"]
     endings = [".com", ".co.in", ".org", ".net"]  # Add more endings if needed
 
@@ -158,12 +156,12 @@ def generate_substring_for_url(url):
 
     return substring
 
-def resetfilter():
+def resetfilter(): # Function being called everytime a new custom filter is added or deleted
     global prebuilt_set, custom_filtered_network_calls_df, charles_df
     if charles_df.empty:
         flash('Error: Charles DataFrame is empty. Please upload a file first.', 'danger')
         return redirect(url_for('index'))
-    # app.logger.debug(charles_df.columns)
+    
     if not prebuilt_set:
         # Empty the DataFrame by dropping all rows
         custom_filtered_network_calls_df = pd.DataFrame()
@@ -176,8 +174,7 @@ def resetfilter():
     custom_filtered_network_calls_df.to_csv(log_path, index=False)
     return
 
-def add_to_set_and_file(input_string):
-    app.logger.debug(f"before addition Global Data: {prebuilt_set}")
+def add_to_set_and_file(input_string): # Function being used add custom filter string
     global custom_filtered_network_calls_df
     if input_string not in prebuilt_set:
         global file_path
@@ -185,11 +182,9 @@ def add_to_set_and_file(input_string):
         with open(file_path, 'a') as file:
             file.write(input_string + '\n')
         resetfilter()
-        app.logger.debug(f"After addition Global Data: {prebuilt_set}")
     return
 
-def delete_from_set_and_file(input_string):
-    app.logger.debug(f"Before deletion Global Data: {prebuilt_set}")
+def delete_from_set_and_file(input_string): # Function being used delete custom filter string
     global custom_filtered_network_calls_df
     if input_string in prebuilt_set:
         global file_path
@@ -201,37 +196,27 @@ def delete_from_set_and_file(input_string):
                 if line.strip() != input_string:
                     file.write(line)
         resetfilter()
-        app.logger.debug(f"After deletion Global Data: {prebuilt_set}")
     return
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST']) # Main entry point of the tool
 def index():
     global filtered_network_calls_df, charles_df, easylist_set, custom_filtered_network_calls_df
-    app.logger.debug("1")
-    if request.method == 'POST':
-        app.logger.debug("2")
+    if request.method == 'POST': # Below code being used to submit a csv file
         if 'file' in request.files:
-            app.logger.debug("3")
             file = request.files['file']
             if file.filename != '':
-                app.logger.debug("4")
                 if file.filename.endswith('.csv'):
-                    app.logger.debug("5")
                     if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_file.csv')):
-                        app.logger.debug("6")
-                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_file.csv'))
-                    app.logger.debug("7")    
+                        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_file.csv'))    
                     filename = 'uploaded_file.csv'
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(file_path)
                     charles_df = load_file(file_path)
                     if charles_df is not None:
-                        app.logger.debug("8")
                         print(f"File '{file.filename}' has been uploaded successfully!")
                         filtered_network_calls_df = None
                         custom_filtered_network_calls_df = None
                         if not easylist_set: 
-                            app.logger.debug("9")
                             easylist_set = generate_easy_list_set()
                         generate_ad_network_output()
                     return redirect(url_for('index'))  
@@ -240,16 +225,9 @@ def index():
 
     return render_template('index.html')
 
-
-# @app.route('/generate_ad_network_output', methods=['POST'])
-# def generate_ad_network_output_route():
-#     return generate_ad_network_output()
-
-
-@app.route('/add_to_set_and_file', methods=['POST'])
+@app.route('/add_to_set_and_file', methods=['POST']) #Route to add custom filter
 def add_to_set_and_file_route():
     global  prebuilt_set, charles_df
-    app.logger.debug(f"Set initially : {prebuilt_set}")
     if charles_df.empty:
         flash('Error: Charles DataFrame is empty. Please upload a file first.', 'danger')
         return redirect(url_for('index'))
@@ -262,7 +240,7 @@ def add_to_set_and_file_route():
     flash(f'Success: Added "{lower_input_string}" to the set and file.', 'success')
     return redirect(url_for('index'))
 
-@app.route('/delete_from_set_and_file', methods=['POST'])
+@app.route('/delete_from_set_and_file', methods=['POST']) #Route to delete custom filter
 def delete_from_set_and_file_route():
     global  prebuilt_set, charles_df
     if charles_df.empty:
@@ -277,44 +255,47 @@ def delete_from_set_and_file_route():
     flash(f'Success: Deleted "{lower_input_string}" from the set and file.', 'success')
     return redirect(url_for('index'))
 
-@app.route('/download_custom_filtered_network_calls')
+@app.route('/download_custom_filtered_network_calls') #Function being used to download specific file
 def download_custom_filtered_network_calls():
     return send_file('custom_filtered_network_calls.csv', as_attachment=True)
 
-@app.route('/download_filtered_network_calls')
+@app.route('/download_filtered_network_calls') #Function being used to download specific file
 def download_filtered_network_calls():
     return send_file('filtered_network_calls.csv', as_attachment=True)
 
+@app.route('/download_graph', methods=['POST'])
+def download_graph():
+    graph_name = None
+    if request.form.get('network_calls_df') == 'custom_filtered':   
+        graph_name = 'custom_filtered_network_graph.jpg'
+    elif request.form.get('network_calls_df') == 'filtered':
+        graph_name = 'filtered_network_graph.jpg'
+    elif request.form.get('network_calls_df') == 'network_calls':
+        graph_name = 'network_graph.jpg'
 
+    if os.path.isfile(graph_name):
+        return send_file(graph_name, as_attachment=True)
+    else:
+        return redirect(url_for('index'))
 
-
-@app.route('/generate_graph', methods=['POST'])
+@app.route('/generate_graph', methods=['POST']) #Function being used to generate graph
 def generate_graph():
     global charles_df, custom_filtered_network_calls_df, filtered_network_calls_df,graph_name
-    # Get the selected dataframe from the radio button
-    # app.logger.debug("Length of charles is ", len(charles_df))
-    # app.logger.debug("Length of filter is ", len(filtered_network_calls_df))
-    # app.logger.debug("Length of custom is ", len(custom_filtered_network_calls_df))
-    selected_df = None
+    selected_df = None # Below lines to confirm the type of graph selected by the radio button
     if request.form.get('network_calls_df') == 'custom_filtered':
-        app.logger.debug("Custom was selected")
         selected_df = custom_filtered_network_calls_df
         graph_name = 'custom_filtered_network_graph.jpg'
     elif request.form.get('network_calls_df') == 'filtered':
-        app.logger.debug("Filter was selected")
         selected_df = filtered_network_calls_df
         graph_name = 'filtered_network_graph.jpg'
     elif request.form.get('network_calls_df') == 'network_calls':
-        app.logger.debug("Charles was selected")
         selected_df = charles_df
         graph_name = 'network_graph.jpg'
 
     if selected_df is None or selected_df.empty : 
-        app.logger.debug("It was empty")
         return redirect(url_for('index'))
-    app.logger.debug("It reached here")
-    app.logger.debug(selected_df)
-    # Generate information table
+
+    # Generate information table with selected parameters
     testdf = selected_df[['URL','Status','Response Code','Method',
                           'Request Start Time','Request End Time',
                           'Response Start Time','Response End Time',
@@ -400,9 +381,6 @@ def generate_graph():
 
     # Save the figure as JPG file
     fig.write_image(graph_name)
-
-    # Update the last dataframe with the current selected dataframe
-    # generate_graph.last_df = selected_df.copy()
 
     # Render template with the graph
     return render_template('index.html', graph=fig.to_html())

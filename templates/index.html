@@ -31,10 +31,6 @@
         <button type="submit">Submit</button>
     </form>
 
-    <!-- <form method="post" action="/generate_ad_network_output">
-        <button type="submit">Generate Ad Network Output</button>
-    </form> -->
-
     <form method="post" action="/add_to_set_and_file">
         <input type="text" name="input_string" placeholder="Enter string">
         <button type="submit">Add to Set and File</button>
@@ -61,6 +57,15 @@
         <input type="radio" name="network_calls_df" value="network_calls"> Network Calls
         <button type="submit">Generate Graph</button>
     </form>
+
+
+    <form method="post" action="/download_graph">
+        <input type="radio" name="network_calls_df" value="custom_filtered"> Custom Filtered Network Calls
+        <input type="radio" name="network_calls_df" value="filtered"> Filtered Network Calls
+        <input type="radio" name="network_calls_df" value="network_calls"> Network Calls
+        <button type="submit">Download Graph</button>
+    </form>
+
 
     <!-- Graph display -->
     {% if graph %}
