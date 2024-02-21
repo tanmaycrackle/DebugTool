@@ -1,10 +1,10 @@
-### About the Debug Tool
+# About the Debug Tool
 
 Debug Tool is a network analysis tool which analyzes the network call logs using a csv file which is of the format used by Charles Proxy. 
 It is capable of generating graphs for network calls indicating their status code, request time, latency and response time. It currently has two filter features. One feature helps in 
 featuring the network calls based on the Ad Network Calls & second filtering feature capable of adding custom domain names to filter network calls. 
 
-### Setting up tool & environment
+# Setting up tool & environment
 
 To use the tool, follow the instructions below to clone the project to your system - 
 
@@ -41,7 +41,7 @@ h. Run the project
 flask --app app run --debug
 ```
 
-### Features & usage guideline
+# Features & usage guideline
 
 ## Choose File & Submit
 
@@ -60,15 +60,15 @@ This feature saves the custom_filtered_network_calls.csv file in the download di
 
 This feature saves the filtered_network_calls.csv file in the download directory of the user's system.
 
-# Custom Filtered Network Calls
+### Custom Filtered Network Calls
 
 This radio button contains the filtered data based on the user provided filters if any.
 
-# Filtered Network Calls
+### Filtered Network Calls
 
 This radio button contains the filtered data based on the Ad Network filters.
 
-# Network Calls
+### Network Calls
 
 This radio button contains the original network calls data.
 
