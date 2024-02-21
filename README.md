@@ -19,6 +19,7 @@ e. Create virtual environment
 virtualenv venv
 ```
 f. Activate the virtual environment
+
 For windows 
 ```
 venv\Scripts\activate
