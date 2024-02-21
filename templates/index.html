@@ -10,7 +10,7 @@
     <title>Debug Tool</title>
 </head>
 <body>
-    <h1>File Upload</h1>
+    <h1>Debug Tool</h1>
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -33,22 +33,22 @@
 
     <form method="post" action="/add_to_set_and_file">
         <input type="text" name="input_string" placeholder="Enter string">
-        <button type="submit">Add to Set and File</button>
+        <button type="submit">Add Custom Filter</button>
     </form>
 
     <!-- New form for deleting from the set and file -->
     <form method="post" action="/delete_from_set_and_file">
         <input type="text" name="input_string" placeholder="Enter string">
-        <button type="submit">Delete from Set and File</button>
+        <button type="submit">Delete Custom Filter</button>
     </form>
     <!-- Button to download custom_filtered_network_calls.csv -->
     <form method="get" action="/download_custom_filtered_network_calls">
-        <button type="submit">Download Custom Filtered Network Calls</button>
+        <button type="submit">Download Custom Filtered Network Calls .csv File</button>
     </form>
 
     <!-- Button to download filtered_network_calls.csv -->
     <form method="get" action="/download_filtered_network_calls">
-        <button type="submit">Download Filtered Network Calls</button>
+        <button type="submit">Download Filtered Network Calls .csv File</button>
     </form>
 
     <form method="post" action="/generate_graph">
