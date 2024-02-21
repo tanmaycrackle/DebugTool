@@ -6,7 +6,7 @@ To use the tool, follow the instructions below to clone the project to your syst
 
 a. type the given command in your terminal                                  
 ```
-  git clone https://github.com/tanmaycrackle/DebugTool
+git clone https://github.com/tanmaycrackle/DebugTool
 ```
 b. navigate to the project directory
 c. Install python in your system if it is not already installed
