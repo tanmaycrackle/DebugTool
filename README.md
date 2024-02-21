@@ -10,13 +10,31 @@ git clone https://github.com/tanmaycrackle/DebugTool
 ```
 b. navigate to the project directory
 c. Install python in your system if it is not already installed
-d. Install virtual environment                                              => pip install virtualenv
-e. Create virtual environment                                               => virtualenv venv
+d. Install virtual environment                                              
+```
+pip install virtualenv
+```
+e. Create virtual environment                                               
+```
+virtualenv venv
+```
 f. Activate the virtual environment
-                                                                For windows => venv\Scripts\activate
-                                                           For macOS/ linux => source venv/bin/activate
-g. Install the dependencies required                                        => pip install -r requirements.txt
-h. Run the project                                                          => flask --app app run --debug
+For windows 
+```
+venv\Scripts\activate
+```
+For macOS/ linux 
+```
+source venv/bin/activate
+```
+g. Install the dependencies required                                        
+```
+pip install -r requirements.txt
+```
+h. Run the project                                                          
+```
+flask --app app run --debug
+```
 
 
 How 
