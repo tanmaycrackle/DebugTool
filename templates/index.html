@@ -8,6 +8,25 @@
     <!-- Include Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <title>Debug Tool</title>
+    <style>
+        /* CSS styles for the table */
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            float: right; /* Align table to the right side */
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+        #tableContainer {
+            position: fixed; /* Position the container fixed to the right side */
+            top: 0; /* Align container to the top */
+            right: 0; /* Align container to the extreme right side */
+            width: 50%; /* Set width of container to 50% of viewport */
+            margin-right: 10px; /* Add margin to the right side */
+        }
+    </style>
 </head>
 <body>
     <h1>Debug Tool</h1>
@@ -41,6 +60,29 @@
         <input type="text" name="input_string" placeholder="Enter string">
         <button type="submit">Delete Custom Filter</button>
     </form>
+
+
+   <!-- Table to display set contents -->
+   <div id="tableContainer">
+        {% if filters %}
+        <table>
+            <tr>
+                <th>Strings in Set</th>
+            </tr>
+            {% for filter in filters %}
+            <tr>
+                <td>{{ filter }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+
+    
+
+    <!-- Include the JavaScript file -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
     <!-- Button to download custom_filtered_network_calls.csv -->
     <form method="get" action="/download_custom_filtered_network_calls">
         <button type="submit">Download Custom Filtered Network Calls .csv File</button>

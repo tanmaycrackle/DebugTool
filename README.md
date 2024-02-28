@@ -50,7 +50,8 @@ uploaded and a csv file with the name as filtered_network_calls.csv will get gen
 
 ## Add Custom Filter & Delete Custom Filter
 
-This feature allows you to add & delete custom domain names to allow custom filtering. The filtered data is created in a seprate csv file named as custom_filtered_network_calls.csv . This file contains all the network calls which were made to the user specified domain names. The file can also be read in the project directory.
+This feature allows you to add & delete custom domain names to allow custom filtering. The filtered data is created in a seprate csv file named as custom_filtered_network_calls.csv . This file contains all the network calls which were made to the user specified domain names. The file can also be read in the project directory. 
+All the custom filters which have been added by the user will be displayed in the form of a table in the right side of the screen.
 
 ## Download Custom Filtered Network Calls .csv File
 
@@ -79,6 +80,7 @@ Based on the user selected radio button, if their is data generated initially, a
 If their are no custom filters added, clicking on the Custom Filtered Network Calls radio button and generating graph would not fetch any graph. The graph is interactive and the user
 can pan and zoom and hover as required. A .jpg file of the graph would also get saved in the project directory after any selected graph is generated. Seperate .jpg file would get 
 generated for all the different types of graph. 
+All the 400 & 500 level status code will be displayed in red color in the graph.
 
 ## Download Graph Functionality
 

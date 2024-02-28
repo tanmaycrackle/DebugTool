@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, logging, send_file
+from flask import Flask, render_template, request, flash, redirect, url_for, logging, send_file, jsonify
 import plotly.graph_objs as go
 import requests
 import re
@@ -156,6 +156,7 @@ def generate_substring_for_url(url): # Generating a short substring to search fo
 
     return substring
 
+
 def resetfilter(): # Function being called everytime a new custom filter is added or deleted
     global prebuilt_set, custom_filtered_network_calls_df, charles_df
     if charles_df.empty:
@@ -172,6 +173,7 @@ def resetfilter(): # Function being called everytime a new custom filter is adde
     custom_filtered_network_calls_df = charles_df[charles_df['URL'].apply(lambda url: any(substring in prebuilt_set for substring in generate_substrings(generate_substring_for_url(url))))]
     log_path = 'custom_filtered_network_calls.csv'
     custom_filtered_network_calls_df.to_csv(log_path, index=False)
+    # update_filters_table()  # Render table after addition
     return
 
 def add_to_set_and_file(input_string): # Function being used add custom filter string
@@ -198,9 +200,11 @@ def delete_from_set_and_file(input_string): # Function being used delete custom 
         resetfilter()
     return
 
+
 @app.route('/', methods=['GET', 'POST']) # Main entry point of the tool
 def index():
-    global filtered_network_calls_df, charles_df, easylist_set, custom_filtered_network_calls_df
+    global filtered_network_calls_df, charles_df, easylist_set, custom_filtered_network_calls_df, prebuilt_set
+    app.logger.debug("Hello world !!!!!!!!!!!!!!!!!!")
     if request.method == 'POST': # Below code being used to submit a csv file
         if 'file' in request.files:
             file = request.files['file']
@@ -222,8 +226,15 @@ def index():
                     return redirect(url_for('index'))  
                 else:
                     print("Only .csv files are accepted.")
+    
+    return render_template('index.html', filters=prebuilt_set)
 
-    return render_template('index.html')
+# @app.route('/get_filters', methods=['GET'])
+# def get_filters():
+#     global prebuilt_set
+#     filters = list(prebuilt_set) # Convert set to list
+#     return jsonify(filters=filters) # Return filters as JSON
+
 
 @app.route('/add_to_set_and_file', methods=['POST']) #Route to add custom filter
 def add_to_set_and_file_route():
@@ -280,7 +291,7 @@ def download_graph():
 
 @app.route('/generate_graph', methods=['POST']) #Function being used to generate graph
 def generate_graph():
-    global charles_df, custom_filtered_network_calls_df, filtered_network_calls_df,graph_name
+    global charles_df, custom_filtered_network_calls_df, filtered_network_calls_df,graph_name,prebuilt_set
     selected_df = None # Below lines to confirm the type of graph selected by the radio button
     if request.form.get('network_calls_df') == 'custom_filtered':
         selected_df = custom_filtered_network_calls_df
@@ -315,6 +326,13 @@ def generate_graph():
 
     # Iterate through each row in the DataFrame and create traces for Request, Response, and Latency
     for index, row in testdf.iterrows():
+        req_color = 'rgba(214, 114, 237, 0.8)'
+        latency_color = 'rgba(255, 165, 0, 0.7)'
+        res_color = 'rgba(76, 140, 237, 0.8)'
+        if row['Response Code'] // 100 == 4 or row['Response Code'] // 100 == 5:
+            req_color = 'rgba(255, 0, 0, 0.8)'
+            latency_color = 'rgba(255, 0, 0, 0.8)'
+            res_color = 'rgba(255, 0, 0, 0.8)'
         request_trace = go.Bar(
             y=[index],
             x=[row['Request Duration (ms)']], # Mutiplying it by a factor since the request duration is very small in number
@@ -323,7 +341,7 @@ def generate_graph():
             hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Request Duration: {row['Request Duration (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
-            marker=dict(color='rgba(214, 114, 237, 0.8)', line=dict(width=0))
+            marker=dict(color=req_color, line=dict(width=0.01, color='black'))
         )
 
         latency_trace = go.Bar(
@@ -334,7 +352,7 @@ def generate_graph():
             hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Latency: {row['Latency (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
-            marker=dict(color='rgba(255, 165, 0, 0.7)', line=dict(width=0))
+            marker=dict(color=latency_color, line=dict(width=0.01, color='black'))
         )
 
         response_trace = go.Bar(
@@ -345,7 +363,7 @@ def generate_graph():
             hoverinfo="text",
             text=f"URL: {row['Shortened URL']}<br>Time: {row['Request Start Time']} ms<br>Response: {row['Response Duration (ms)']} ms<br>Code: {row['Response Code']}",
             # showlegend=True,
-            marker=dict(color='rgba(76, 140, 237, 0.8)', line=dict(width=0))
+            marker=dict(color=res_color, line=dict(width=0.01, color='black'))
         )
 
         traces.extend([request_trace, latency_trace, response_trace])
@@ -383,7 +401,7 @@ def generate_graph():
     fig.write_image(graph_name)
 
     # Render template with the graph
-    return render_template('index.html', graph=fig.to_html())
+    return render_template('index.html', graph=fig.to_html(),filters=prebuilt_set)
 
 
 if __name__ == '__main__':
